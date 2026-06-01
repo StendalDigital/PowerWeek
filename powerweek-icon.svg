@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Background gradient -->
+    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1E1A2E"/>
+      <stop offset="100%" stop-color="#0C0B14"/>
+    </linearGradient>
+
+    <!-- Bolt gradient: gold → amber → coral -->
+    <linearGradient id="bolt-fill" x1="295" y1="68" x2="210" y2="452" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#FFE066"/>
+      <stop offset="55%"  stop-color="#FFB830"/>
+      <stop offset="100%" stop-color="#FF6B6B"/>
+    </linearGradient>
+
+    <!-- Subtle inner highlight on bolt -->
+    <linearGradient id="bolt-shine" x1="260" y1="68" x2="230" y2="280" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#ffffff" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Orb blur -->
+    <filter id="orb-blur" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="40"/>
+    </filter>
+
+    <!-- Soft glow behind bolt -->
+    <filter id="bolt-glow" x="-60%" y="-30%" width="220%" height="160%">
+      <feGaussianBlur stdDeviation="18" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Clip to rounded square -->
+    <clipPath id="icon-clip">
+      <rect width="512" height="512" rx="112"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#icon-clip)">
+
+    <!-- Background -->
+    <rect width="512" height="512" fill="url(#bg)"/>
+
+    <!-- Subtle grid lines -->
+    <g stroke="rgba(255,255,255,0.025)" stroke-width="1">
+      <line x1="0" y1="128" x2="512" y2="128"/>
+      <line x1="0" y1="256" x2="512" y2="256"/>
+      <line x1="0" y1="384" x2="512" y2="384"/>
+      <line x1="128" y1="0" x2="128" y2="512"/>
+      <line x1="256" y1="0" x2="256" y2="512"/>
+      <line x1="384" y1="0" x2="384" y2="512"/>
+    </g>
+
+    <!-- Purple ambient orb – top right -->
+    <circle cx="390" cy="100" r="170" fill="#A78BFA" opacity="0.18" filter="url(#orb-blur)"/>
+
+    <!-- Amber ambient orb – bottom left -->
+    <circle cx="120" cy="410" r="140" fill="#FFB830" opacity="0.14" filter="url(#orb-blur)"/>
+
+    <!-- Blue-teal accent orb – bottom right -->
+    <circle cx="430" cy="420" r="100" fill="#60A5FA" opacity="0.08" filter="url(#orb-blur)"/>
+
+    <!-- Bolt glow layer (blurred orange behind) -->
+    <polygon
+      points="295,68 175,272 255,272 210,452 340,248 260,248"
+      fill="#FFB830"
+      opacity="0.45"
+      filter="url(#orb-blur)"/>
+
+    <!-- Main lightning bolt -->
+    <polygon
+      points="295,68 175,272 255,272 210,452 340,248 260,248"
+      fill="url(#bolt-fill)"
+      filter="url(#bolt-glow)"/>
+
+    <!-- Shine overlay on bolt -->
+    <polygon
+      points="295,68 175,272 255,272 210,452 340,248 260,248"
+      fill="url(#bolt-shine)"/>
+
+    <!-- Decorative dots -->
+    <circle cx="390" cy="195" r="5"  fill="#FFB830" opacity="0.55"/>
+    <circle cx="408" cy="218" r="3"  fill="#FFB830" opacity="0.35"/>
+    <circle cx="115" cy="155" r="4"  fill="#A78BFA" opacity="0.6"/>
+    <circle cx="138" cy="178" r="2.5" fill="#A78BFA" opacity="0.4"/>
+    <circle cx="420" cy="340" r="4"  fill="#A78BFA" opacity="0.45"/>
+    <circle cx="100" cy="340" r="3"  fill="#FFB830" opacity="0.4"/>
+    <circle cx="78"  cy="300" r="5"  fill="#60A5FA" opacity="0.35"/>
+    <circle cx="440" cy="150" r="3"  fill="#3DDC84" opacity="0.4"/>
+    <circle cx="85"  cy="220" r="2"  fill="#3DDC84" opacity="0.35"/>
+
+    <!-- Corner accent lines -->
+    <line x1="44"  y1="44"  x2="90"  y2="44"  stroke="#A78BFA" stroke-width="2.5" stroke-linecap="round" opacity="0.4"/>
+    <line x1="44"  y1="44"  x2="44"  y2="90"  stroke="#A78BFA" stroke-width="2.5" stroke-linecap="round" opacity="0.4"/>
+    <line x1="468" y1="468" x2="422" y2="468" stroke="#FFB830" stroke-width="2.5" stroke-linecap="round" opacity="0.4"/>
+    <line x1="468" y1="468" x2="468" y2="422" stroke="#FFB830" stroke-width="2.5" stroke-linecap="round" opacity="0.4"/>
+
+    <!-- Subtle rim/border glow -->
+    <rect width="512" height="512" rx="112"
+      fill="none"
+      stroke="rgba(167,139,250,0.12)"
+      stroke-width="3"/>
+
+  </g>
+</svg>

@@ -1,0 +1,18 @@
+{
+  "name": "PowerWeek",
+  "short_name": "PowerWeek",
+  "description": "Track your goals week by week across 12-week periods",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0C0B14",
+  "theme_color": "#0C0B14",
+  "icons": [
+    {
+      "src": "powerweek-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
