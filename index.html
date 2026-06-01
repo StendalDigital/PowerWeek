@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PowerWeek</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0C0B14; --surface:#17152A; --s2:#211E38; --s3:#2C2848;
+  --accent:#FFB830; --a2:#FF6B6B; --success:#3DDC84;
+  --purple:#A78BFA; --blue:#60A5FA; --pink:#F472B6;
+  --text:#EDE9F6; --muted:rgba(237,233,246,0.45); --border:rgba(255,255,255,0.07);
+  --r:20px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{height:100%}
+body{
+  font-family:'Fredoka',sans-serif;background:var(--bg);color:var(--text);
+  max-width:430px;margin:0 auto;height:100dvh;
+  display:flex;flex-direction:column;overflow:hidden;position:relative;
+}
+.orb{position:fixed;border-radius:50%;filter:blur(90px);pointer-events:none;z-index:0}
+.orb-1{width:280px;height:280px;background:var(--purple);opacity:.1;top:-100px;right:-80px}
+.orb-2{width:220px;height:220px;background:var(--accent);opacity:.08;bottom:120px;left:-80px}
+.orb-3{width:180px;height:180px;background:var(--success);opacity:.07;bottom:200px;right:-60px}
+
+/* ── Header ── */
+.hdr{padding:16px 20px 8px;flex-shrink:0;position:relative;z-index:2}
+.hdr-row{display:flex;justify-content:space-between;align-items:center}
+.logo{font-size:25px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--a2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.period-pill{background:var(--s2);border:1px solid var(--border);border-radius:100px;
+  padding:5px 13px;font-size:12px;font-weight:500;color:var(--muted);display:flex;align-items:center;gap:4px}
+.period-pill b{color:var(--accent);font-weight:700}
+.date-line{font-size:13px;color:var(--muted);margin-top:4px;font-weight:400}
+
+/* ── Nav ── */
+.nav{display:flex;gap:5px;padding:0 20px 12px;flex-shrink:0;position:relative;z-index:2}
+.nb{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:9px 4px;font-family:'Fredoka',sans-serif;font-size:13px;font-weight:500;
+  color:var(--muted);cursor:pointer;transition:all .2s;text-align:center;user-select:none}
+.nb.on{background:var(--accent);color:#0C0B14;border-color:transparent;font-weight:700}
+
+/* ── Scroll ── */
+.scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;
+  padding:0 20px 24px;position:relative;z-index:2}
+.scroll::-webkit-scrollbar{display:none}
+
+/* ── Shared ── */
+.sec{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;
+  letter-spacing:1.8px;margin:0 0 9px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 16px}
+.empty{text-align:center;padding:48px 16px;color:var(--muted)}
+.empty-i{font-size:52px;margin-bottom:14px}
+.empty-h{font-size:20px;font-weight:700;color:var(--text);margin-bottom:8px}
+.empty-p{font-size:14px;line-height:1.6;font-weight:400}
+
+/* ── Progress card ── */
+.prog-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:11px}
+.prog-lbl{font-size:15px;font-weight:600}
+.prog-n{font-size:30px;font-weight:700;color:var(--accent);line-height:1}
+.prog-n span{font-size:16px;color:var(--muted);font-weight:400}
+.prog-track{background:var(--s2);border-radius:100px;height:10px;overflow:hidden}
+.prog-fill{height:100%;border-radius:100px;background:linear-gradient(90deg,var(--success),var(--accent));
+  transition:width .6s cubic-bezier(.34,1.56,.64,1)}
+.prog-msg{font-size:13px;color:var(--muted);margin-top:9px;font-weight:400}
+
+/* ── Goal card (Today) ── */
+.gc{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r);
+  padding:13px 13px;display:flex;align-items:center;gap:12px;margin-bottom:9px;
+  cursor:pointer;position:relative;overflow:hidden;user-select:none;
+  transition:transform .15s cubic-bezier(.34,1.56,.64,1),border-color .3s}
+.gc::after{content:'';position:absolute;inset:0;border-radius:var(--r);
+  background:linear-gradient(135deg,rgba(61,220,132,.07),rgba(167,139,250,.05));
+  opacity:0;transition:opacity .3s;pointer-events:none}
+.gc.done::after{opacity:1}
+.gc.done{border-color:rgba(61,220,132,.3)}
+.gc:active{transform:scale(.96)}
+.gc-emoji{width:44px;height:44px;background:var(--s2);border-radius:12px;
+  display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;
+  position:relative;z-index:1;transition:transform .35s cubic-bezier(.34,1.56,.64,1)}
+.gc.done .gc-emoji{transform:scale(1.15) rotate(8deg)}
+.gc-info{flex:1;position:relative;z-index:1;min-width:0}
+.gc-name{font-size:17px;font-weight:600;line-height:1.2;transition:color .25s;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gc.done .gc-name{color:var(--success)}
+.gc-sub{font-size:12px;color:var(--muted);margin-top:2px;font-weight:400}
+.gc-check{width:27px;height:27px;border-radius:50%;border:2.5px solid rgba(255,255,255,.15);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  position:relative;z-index:1;transition:all .3s cubic-bezier(.34,1.56,.64,1)}
+.gc.done .gc-check{background:var(--success);border-color:var(--success);transform:scale(1.15)}
+.gc-tick{font-size:13px;font-weight:700;color:#000;opacity:0;
+  transform:scale(0) rotate(-30deg);transition:all .25s cubic-bezier(.34,1.56,.64,1)}
+.gc.done .gc-tick{opacity:1;transform:scale(1) rotate(0)}
+
+/* ── Week mini-dots (Today) ── */
+.week-dots{display:flex;gap:3px;margin-top:5px}
+.wd{width:14px;height:5px;border-radius:3px;background:var(--s2);transition:background .25s}
+.wd.done{background:var(--success)}
+.wd.today{background:var(--accent);opacity:.55}
+.wd.need{background:rgba(255,107,107,.35)}
+
+/* ── All done card ── */
+.all-done{background:linear-gradient(135deg,rgba(61,220,132,.12),rgba(167,139,250,.08));
+  border:1px solid rgba(61,220,132,.25);border-radius:var(--r);
+  padding:26px 16px;text-align:center;margin-bottom:14px}
+.all-done-i{font-size:54px;line-height:1}
+.all-done-h{font-size:22px;font-weight:700;color:var(--success);margin:10px 0 6px}
+.all-done-p{font-size:14px;color:var(--muted);font-weight:400}
+
+/* ── Locked goal ── */
+.locked{background:var(--surface);border:1px solid var(--border);border-radius:16px;
+  padding:11px 13px;display:flex;align-items:center;gap:11px;margin-bottom:8px;opacity:.4}
+.lock-badge{margin-left:auto;font-size:11px;font-weight:600;color:var(--accent);
+  background:rgba(255,184,48,.12);border-radius:100px;padding:3px 10px;white-space:nowrap;flex-shrink:0}
+
+/* ── Period tab ── */
+.period-summary{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);padding:18px;margin-bottom:14px}
+.ps-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+.ps-name{font-size:20px;font-weight:700}
+.ps-meta{font-size:13px;color:var(--muted);margin-top:2px;font-weight:400}
+.ps-rate{text-align:right}
+.ps-rate-num{font-size:28px;font-weight:700;color:var(--success);line-height:1}
+.ps-rate-lbl{font-size:11px;color:var(--muted);font-weight:500}
+.ps-week-track{background:var(--s2);border-radius:100px;height:10px;overflow:hidden;margin-bottom:10px}
+.ps-week-fill{height:100%;border-radius:100px;background:linear-gradient(90deg,var(--purple),var(--blue));
+  transition:width .6s ease}
+.ps-footer{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);font-weight:400}
+
+/* ── 12-week goal grid ── */
+.pgrow{background:var(--surface);border:1px solid var(--border);border-radius:18px;
+  padding:13px 14px;margin-bottom:8px}
+.pgrow-head{display:flex;align-items:center;gap:9px;margin-bottom:10px}
+.pgrow-name{font-size:15px;font-weight:600;flex:1;overflow:hidden;
+  white-space:nowrap;text-overflow:ellipsis}
+.pgrow-rate{font-size:13px;font-weight:700;color:var(--success);margin-left:auto;flex-shrink:0}
+.pgrow-freq{font-size:11px;color:var(--muted);font-weight:500;margin-top:1px}
+.week-grid{display:flex;gap:3px}
+.wc{flex:1;aspect-ratio:1;border-radius:5px;background:var(--s2);
+  border:1px solid var(--border);position:relative;min-width:0}
+.wc.success{background:var(--success);border-color:var(--success)}
+.wc.partial{background:var(--accent);border-color:var(--accent);opacity:.7}
+.wc.fail{background:rgba(255,107,107,.2);border-color:rgba(255,107,107,.3)}
+.wc.future{opacity:.3}
+.wc.inactive{opacity:.15}
+.wc.cur{outline:2px solid var(--accent);outline-offset:1px}
+.wc-num{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  font-size:8px;font-weight:700;color:rgba(255,255,255,.4);line-height:1}
+.wc.success .wc-num,.wc.partial .wc-num,.wc.fail .wc-num{color:rgba(0,0,0,.3)}
+
+/* ── Legend ── */
+.legend{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;padding:0 2px}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);font-weight:500}
+.leg-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+
+/* ── New period card ── */
+.new-period-card{background:linear-gradient(135deg,rgba(167,139,250,.1),rgba(96,165,250,.07));
+  border:1px solid rgba(167,139,250,.25);border-radius:var(--r);padding:20px 18px;margin-top:4px}
+.np-title{font-size:18px;font-weight:700;margin-bottom:6px}
+.np-desc{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:16px;font-weight:400}
+.np-btns{display:flex;flex-direction:column;gap:9px}
+.np-btn{padding:13px 16px;border-radius:14px;border:none;font-family:'Fredoka',sans-serif;
+  font-size:15px;font-weight:600;cursor:pointer;transition:transform .15s;text-align:left;
+  display:flex;align-items:center;gap:10px}
+.np-btn:active{transform:scale(.97)}
+.np-btn-primary{background:var(--purple);color:#fff}
+.np-btn-secondary{background:var(--s2);color:var(--text);border:1px solid var(--border)}
+.np-btn-sub{font-size:12px;font-weight:400;opacity:.75;display:block;margin-top:1px}
+
+/* ── Goals tab forms ── */
+.form-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  padding:14px;margin-bottom:10px}
+.form-row{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.form-row:last-child{margin-bottom:0}
+.ep-btn{width:50px;height:50px;background:var(--s2);border:1px solid var(--border);
+  border-radius:12px;font-size:24px;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;flex-shrink:0;transition:transform .15s}
+.ep-btn:active{transform:scale(.88)}
+.tinp{flex:1;height:50px;background:var(--s2);border:1.5px solid var(--border);
+  border-radius:12px;padding:0 13px;font-family:'Fredoka',sans-serif;font-size:16px;
+  color:var(--text);outline:none;transition:border-color .2s}
+.tinp:focus{border-color:var(--accent)}
+.tinp::placeholder{color:var(--muted)}
+.add-btn{width:50px;height:50px;background:var(--accent);border:none;border-radius:12px;
+  font-size:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;color:#000;transition:transform .15s}
+.add-btn:active{transform:scale(.88)}
+
+/* form fields row */
+.fields-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field-block{background:var(--s2);border-radius:13px;padding:10px 12px}
+.field-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;
+  letter-spacing:1.2px;margin-bottom:7px}
+.stepper{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.step-btn{width:28px;height:28px;background:var(--s3);border:none;border-radius:8px;
+  color:var(--text);font-size:18px;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;flex-shrink:0;font-family:'Fredoka',sans-serif;line-height:1;
+  transition:background .15s}
+.step-btn:active{background:var(--accent);color:#000}
+.step-val{font-size:14px;font-weight:700;color:var(--accent);text-align:center;flex:1}
+.freq-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.freq-btn{background:var(--s3);border:none;border-radius:8px;padding:6px 3px;
+  font-family:'Fredoka',sans-serif;font-size:12px;font-weight:600;color:var(--muted);
+  cursor:pointer;text-align:center;transition:all .15s}
+.freq-btn.on{background:var(--accent);color:#0C0B14}
+
+/* Emoji panel */
+.emoji-panel{display:flex;flex-wrap:wrap;gap:6px;background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--r);padding:12px;margin-bottom:10px}
+.ep-i{width:40px;height:40px;font-size:22px;display:flex;align-items:center;
+  justify-content:center;border-radius:9px;background:var(--s2);cursor:pointer;transition:transform .15s}
+.ep-i:active{transform:scale(1.25)}
+.ep-i.sel{outline:2.5px solid var(--accent)}
+
+/* Goal list */
+.gl-item{background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  padding:11px 13px;display:flex;align-items:center;gap:10px;margin-bottom:7px}
+.gl-badges{display:flex;gap:5px;margin-top:3px;flex-wrap:wrap}
+.gl-badge{font-size:10px;font-weight:600;border-radius:100px;padding:2px 8px}
+.badge-wk{background:rgba(255,184,48,.12);color:var(--accent)}
+.badge-freq{background:rgba(96,165,250,.12);color:var(--blue)}
+.badge-active{background:rgba(61,220,132,.12);color:var(--success)}
+.gl-del{width:28px;height:28px;background:rgba(255,107,107,.1);border:none;border-radius:7px;
+  color:var(--a2);font-size:14px;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;flex-shrink:0}
+.gl-edit{width:28px;height:28px;background:rgba(167,139,250,.12);border:none;border-radius:7px;
+  color:var(--purple);font-size:14px;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;flex-shrink:0}
+.edit-card{background:var(--s2);border:1.5px solid var(--purple);border-radius:18px;
+  padding:13px;margin-bottom:7px}
+.edit-card .form-row{margin-bottom:9px}
+.save-btn{width:50px;height:50px;background:var(--success);border:none;border-radius:12px;
+  font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;color:#000;transition:transform .15s;font-family:'Fredoka',sans-serif;font-weight:700}
+.save-btn:active{transform:scale(.88)}
+.cancel-btn{width:36px;height:50px;background:var(--s3);border:none;border-radius:12px;
+  font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;color:var(--muted);transition:transform .15s}
+.cancel-btn:active{transform:scale(.88)}
+
+/* Goal ordering info */
+.info-bar{background:rgba(255,184,48,.07);border:1px solid rgba(255,184,48,.18);
+  border-radius:13px;padding:11px 13px;font-size:13px;color:var(--accent);font-weight:500;
+  margin-bottom:10px;display:flex;align-items:flex-start;gap:8px;line-height:1.4}
+.info-bar span:first-child{flex-shrink:0;margin-top:1px}
+
+/* Example btn */
+.ex-btn{width:100%;padding:13px;background:transparent;border:1.5px dashed rgba(255,255,255,.1);
+  border-radius:14px;color:var(--muted);font-family:'Fredoka',sans-serif;font-size:14px;
+  cursor:pointer;margin-top:4px;transition:all .2s}
+.ex-btn:hover,.ex-btn:active{border-color:var(--accent);color:var(--accent)}
+
+/* Confetti canvas */
+#cc{position:fixed;inset:0;pointer-events:none;z-index:9999}
+@keyframes flashOut{from{opacity:1}to{opacity:0}}
+.flash{position:fixed;inset:0;background:rgba(255,184,48,.06);
+  pointer-events:none;z-index:9998;animation:flashOut .5s ease-out forwards}
+@keyframes cIn{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}
+.gc,.locked,.pgrow,.gl-item{animation:cIn .28s ease-out both}
+</style>
+</head>
+<body>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+<canvas id="cc"></canvas>
+
+<div class="hdr">
+  <div class="hdr-row">
+    <div class="logo">PowerWeek ⚡</div>
+    <div class="period-pill" id="period-pill"><b id="wn">W1</b>/<b id="wof">12</b></div>
+  </div>
+  <div class="date-line" id="dl"></div>
+</div>
+<div class="nav">
+  <button class="nb on" id="nb-today" onclick="go('today')">Today</button>
+  <button class="nb" id="nb-period" onclick="go('period')">12 Weeks</button>
+  <button class="nb" id="nb-goals" onclick="go('goals')">Goals</button>
+</div>
+<div class="scroll" id="scroll"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   STATE & PERSISTENCE
+═══════════════════════════════════════════════════════ */
+const KEY = 'pw_v1';
+let S = { goals:[], periods:[], activePeriodId:null, completions:{} };
+
+function load() {
+  try { const r = localStorage.getItem(KEY); if(r) S = {...S,...JSON.parse(r)}; } catch(e){}
+}
+function save() {
+  try { localStorage.setItem(KEY,JSON.stringify(S)); } catch(e){}
+}
+
+/* ═══════════════════════════════════════════════════════
+   UTILS
+═══════════════════════════════════════════════════════ */
+function ds(d) { return d.toISOString().slice(0,10); }
+function today() { return ds(new Date()); }
+function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function freqLabel(f) { return f===7?'Daily':f+'×/wk'; }
+
+/* ═══════════════════════════════════════════════════════
+   PERIOD HELPERS
+═══════════════════════════════════════════════════════ */
+function curPeriod() { return S.periods.find(p=>p.id===S.activePeriodId)||S.periods[S.periods.length-1]; }
+
+function curWeekNum() {
+  const p = curPeriod(); if(!p) return 1;
+  const start = new Date(p.startDate+'T00:00:00');
+  const t = new Date(); t.setHours(0,0,0,0);
+  return Math.min(12, Math.max(1, Math.floor((t-start)/604800000)+1));
+}
+
+function isPeriodOver() {
+  const p = curPeriod(); if(!p) return false;
+  const start = new Date(p.startDate+'T00:00:00');
+  const t = new Date(); t.setHours(0,0,0,0);
+  return Math.floor((t-start)/86400000) >= 84;
+}
+
+function daysLeft() {
+  const p = curPeriod(); if(!p) return 0;
+  const end = new Date(p.startDate+'T00:00:00');
+  end.setDate(end.getDate()+84);
+  const t = new Date(); t.setHours(0,0,0,0);
+  return Math.max(0, Math.floor((end-t)/86400000));
+}
+
+function weekDatesFor(weekNum) {
+  const p = curPeriod(); if(!p) return [];
+  const start = new Date(p.startDate+'T00:00:00');
+  start.setDate(start.getDate()+(weekNum-1)*7);
+  return Array.from({length:7},(_,i)=>{ const d=new Date(start); d.setDate(start.getDate()+i); return ds(d); });
+}
+
+/* ═══════════════════════════════════════════════════════
+   GOAL HELPERS
+═══════════════════════════════════════════════════════ */
+function activeGoals() {
+  const w = curWeekNum();
+  return S.goals.filter(g => g.unlockWeek <= w);
+}
+
+function isDone(gid, date) { return (S.completions[date||today()]||[]).includes(gid); }
+
+function toggle(gid) {
+  const d = today();
+  if(!S.completions[d]) S.completions[d]=[];
+  const i = S.completions[d].indexOf(gid);
+  if(i===-1){ S.completions[d].push(gid); save(); return true; }
+  else{ S.completions[d].splice(i,1); save(); return false; }
+}
+
+function weekCompCount(gid, wn) {
+  return weekDatesFor(wn).filter(d=>isDone(gid,d)).length;
+}
+
+function weekStatus(gid, wn) {
+  const g = S.goals.find(x=>x.id===gid); if(!g) return 'inactive';
+  const w = curWeekNum();
+  if(wn > w) return 'future';
+  if(wn < g.unlockWeek) return 'inactive';
+  const c = weekCompCount(gid,wn);
+  if(c >= g.targetFreq) return 'success';
+  if(c > 0) return 'partial';
+  return 'fail';
+}
+
+function goalPeriodRate(gid) {
+  const g = S.goals.find(x=>x.id===gid); if(!g) return null;
+  const w = curWeekNum(); let total=0,suc=0;
+  for(let wn=g.unlockWeek; wn<=w; wn++){
+    total++;
+    if(weekStatus(gid,wn)==='success') suc++;
+  }
+  return total>0 ? Math.round(suc/total*100) : null;
+}
+
+function overallRate() {
+  const w = curWeekNum(); let total=0,suc=0;
+  S.goals.forEach(g=>{
+    for(let wn=g.unlockWeek;wn<=w;wn++){
+      total++;
+      if(weekStatus(g.id,wn)==='success') suc++;
+    }
+  });
+  return total>0 ? Math.round(suc/total*100) : null;
+}
+
+function dayStreakFor(gid) {
+  let s=0; const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-1);
+  while(true){ const str=ds(d); if(!(S.completions[str]||[]).includes(gid)) break; s++; d.setDate(d.getDate()-1); }
+  return s;
+}
+
+function weekDoneCount(gid) { return weekDatesFor(curWeekNum()).filter(d=>isDone(gid,d)).length; }
+
+/* ═══════════════════════════════════════════════════════
+   TAB STATE
+═══════════════════════════════════════════════════════ */
+let tab = 'today';
+const form = { emoji:'💪', showPicker:false, unlockWeek:1, targetFreq:7, nameValue:'' };
+const edit = { id:null, emoji:'', nameValue:'', unlockWeek:1, targetFreq:7, showPicker:false };
+
+const EMOJIS = ['💪','📚','🧘','🏃','💧','🥗','😴','✍️','🎸','🌿','🧹','💊','🐕','🎯','🧠','🌅','🚴','🤸','🎨','📝','🎵','🍎','☕','🛁','🌙','🏊','⚽','🔬','🎻','🌸'];
+const FREQS = [{label:'Daily',freq:7},{label:'6×',freq:6},{label:'5×',freq:5},{label:'4×',freq:4},{label:'3×',freq:3},{label:'2×',freq:2},{label:'1×',freq:1}];
+
+function go(t) {
+  tab=t; form.showPicker=false;
+  ['today','period','goals'].forEach(id=>{
+    document.getElementById('nb-'+id).classList.toggle('on',id===t);
+  });
+  render();
+}
+
+/* ═══════════════════════════════════════════════════════
+   RENDER CONTROLLER
+═══════════════════════════════════════════════════════ */
+function render() {
+  const w = curWeekNum();
+  document.getElementById('wn').textContent = 'W'+w;
+  document.getElementById('wof').textContent = '12';
+  document.getElementById('dl').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+
+  const sc = document.getElementById('scroll');
+  if(tab==='today') sc.innerHTML=rToday();
+  else if(tab==='period') sc.innerHTML=rPeriod();
+  else sc.innerHTML=rGoals();
+  bind();
+}
+
+/* ═══════════════════════════════════════════════════════
+   TODAY TAB
+═══════════════════════════════════════════════════════ */
+function rToday() {
+  if(!S.goals.length) return `<div class="empty"><div class="empty-i">🌱</div>
+    <div class="empty-h">No goals yet</div>
+    <div class="empty-p">Go to "Goals" and add the habits you want to build. Start with one!</div></div>`;
+
+  const ag = activeGoals();
+  const done = ag.filter(g=>isDone(g.id)).length;
+  const total = ag.length;
+  const pct = total ? Math.round(done/total*100) : 0;
+  const msgs = ['Let\'s go! 💫','Keep pushing!','Halfway there 🚀','Almost done! 🔥','Perfect day! 🏆'];
+
+  let h = `<div class="card" style="margin-bottom:13px">
+    <div class="prog-top">
+      <div class="prog-lbl">Today's progress</div>
+      <div class="prog-n">${done}<span> / ${total}</span></div>
+    </div>
+    <div class="prog-track"><div class="prog-fill" style="width:${pct}%"></div></div>
+    <div class="prog-msg">${msgs[Math.min(Math.floor(done/Math.max(1,total)*(msgs.length)),msgs.length-1)]}</div>
+  </div>`;
+
+  if(done===total && total>0) {
+    h+=`<div class="all-done">
+      <div class="all-done-i">🎉</div>
+      <div class="all-done-h">All done today!</div>
+      <div class="all-done-p">You nailed all ${total} goal${total!==1?'s':''}. See you tomorrow!</div>
+    </div>`;
+  }
+
+  h+=`<div class="sec">Today's goals</div>`;
+  const todayDates = weekDatesFor(curWeekNum());
+  ag.forEach((g,i)=>{
+    const dk = isDone(g.id);
+    const wd = weekDoneCount(g.id);
+    const sub = `${wd}/${g.targetFreq} this week · ${dayStreakFor(g.id)>0?dayStreakFor(g.id)+' day streak 🔥':'start your streak!'}`;
+    // Mini week dots
+    let dots='<div class="week-dots">';
+    todayDates.forEach(d=>{
+      const isT=d===today(), isDk=isDone(g.id,d), isFut=d>today();
+      let cls='';
+      if(isDk) cls='done';
+      else if(isT) cls='today';
+      else if(!isFut && d < today()) cls=''; // missed - plain
+      else cls='future'; // style ignored
+      dots+=`<div class="wd ${cls}" title="${d}"></div>`;
+    });
+    dots+='</div>';
+    h+=`<div class="gc${dk?' done':''}" data-gid="${g.id}" style="animation-delay:${i*40}ms">
+      <div class="gc-emoji">${g.emoji}</div>
+      <div class="gc-info">
+        <div class="gc-name">${esc(g.name)}</div>
+        <div class="gc-sub">${sub}</div>
+        ${dots}
+      </div>
+      <div class="gc-check"><div class="gc-tick">✓</div></div>
+    </div>`;
+  });
+
+  const locked = S.goals.filter(g=>g.unlockWeek > curWeekNum());
+  if(locked.length) {
+    h+=`<div class="sec" style="margin-top:16px">Unlocking soon</div>`;
+    locked.forEach((g,i)=>{
+      h+=`<div class="locked" style="animation-delay:${i*35}ms">
+        <div style="font-size:22px">${g.emoji}</div>
+        <div style="font-size:15px;font-weight:500;flex:1">${esc(g.name)}</div>
+        <div class="lock-badge">Week ${g.unlockWeek}</div>
+      </div>`;
+    });
+  }
+  return h;
+}
+
+/* ═══════════════════════════════════════════════════════
+   PERIOD TAB (12-WEEK OVERVIEW)
+═══════════════════════════════════════════════════════ */
+function rPeriod() {
+  const p = curPeriod();
+  if(!p) return `<div class="empty"><div class="empty-i">📅</div><div class="empty-h">No period yet</div></div>`;
+  if(!S.goals.length) return `<div class="empty"><div class="empty-i">📅</div>
+    <div class="empty-h">No goals yet</div>
+    <div class="empty-p">Add goals first in the Goals tab.</div></div>`;
+
+  const w = curWeekNum();
+  const over = isPeriodOver();
+  const pNum = S.periods.indexOf(p)+1;
+  const or = overallRate();
+  const dl = daysLeft();
+
+  // Period summary card
+  let h=`<div class="period-summary">
+    <div class="ps-header">
+      <div>
+        <div class="ps-name">Period ${pNum}</div>
+        <div class="ps-meta">${over?'Complete ✓':`Week ${w} of 12 · ${dl} day${dl!==1?'s':''} left`}</div>
+      </div>
+      <div class="ps-rate">
+        <div class="ps-rate-num">${or!==null?or+'%':'–'}</div>
+        <div class="ps-rate-lbl">Overall success</div>
+      </div>
+    </div>
+    <div class="ps-week-track">
+      <div class="ps-week-fill" style="width:${over?100:Math.round((w-1)/12*100)}%"></div>
+    </div>
+    <div class="ps-footer">
+      <span>Week ${w} of 12</span>
+      <span>${over?'Period complete':'${dl} days remaining'}</span>
+    </div>
+  </div>`;
+
+  // Legend
+  h+=`<div class="legend">
+    <div class="leg-item"><div class="leg-dot" style="background:var(--success)"></div> Target met</div>
+    <div class="leg-item"><div class="leg-dot" style="background:var(--accent);opacity:.7"></div> Partial</div>
+    <div class="leg-item"><div class="leg-dot" style="background:rgba(255,107,107,.35)"></div> Missed</div>
+    <div class="leg-item"><div class="leg-dot" style="background:var(--s2);opacity:.4"></div> Locked / future</div>
+  </div>`;
+
+  // Per-goal 12-week grids
+  h+=`<div class="sec">Goal progress</div>`;
+  S.goals.forEach((g,i)=>{
+    const pr = goalPeriodRate(g.id);
+    const succWeeks = [];
+    for(let wn=1;wn<=12;wn++) succWeeks.push(weekStatus(g.id,wn));
+
+    h+=`<div class="pgrow" style="animation-delay:${i*40}ms">
+      <div class="pgrow-head">
+        <span style="font-size:20px">${g.emoji}</span>
+        <div style="flex:1;min-width:0">
+          <div class="pgrow-name">${esc(g.name)}</div>
+          <div class="pgrow-freq">${freqLabel(g.targetFreq)} · from week ${g.unlockWeek}</div>
+        </div>
+        <div class="pgrow-rate">${pr!==null?pr+'%':'–'}</div>
+      </div>
+      <div class="week-grid">`;
+    for(let wn=1;wn<=12;wn++) {
+      const st=succWeeks[wn-1];
+      const isCur=wn===w&&!over;
+      h+=`<div class="wc ${st}${isCur?' cur':''}" title="Week ${wn}">
+        <div class="wc-num">${wn}</div>
+      </div>`;
+    }
+    h+=`</div></div>`;
+  });
+
+  // New period section
+  h+=`<div class="new-period-card" style="margin-top:14px">
+    <div class="np-title">🔄 ${over?'Start New Period':'New Period'}</div>
+    <div class="np-desc">${over
+      ? 'This 12-week period is complete. Start a fresh one and keep building!'
+      : `You're in week ${w} of 12. You can start a new period anytime — all your history is preserved.`}</div>
+    <div class="np-btns">
+      <button class="np-btn np-btn-primary" id="np-reset">
+        <span>✦</span>
+        <div>Transfer all goals to Week 1
+          <span class="np-btn-sub">All goals active from day one of the new period</span>
+        </div>
+      </button>
+      <button class="np-btn np-btn-secondary" id="np-keep">
+        <span>📋</span>
+        <div>Keep current schedule
+          <span class="np-btn-sub">Goals unlock on the same week numbers as before</span>
+        </div>
+      </button>
+    </div>
+  </div>`;
+
+  return h;
+}
+
+/* ═══════════════════════════════════════════════════════
+   GOALS TAB
+═══════════════════════════════════════════════════════ */
+function rGoals() {
+  let h='';
+
+  // Add-form emoji picker
+  if(form.showPicker) {
+    h+=`<div class="emoji-panel" id="add-picker">`;
+    EMOJIS.forEach(e=>{ h+=`<div class="ep-i${e===form.emoji?' sel':''}" data-addep="${e}">${e}</div>`; });
+    h+=`</div>`;
+  }
+
+  // Add form
+  h+=`<div class="sec">Add new goal</div>
+  <div class="form-card">
+    <div class="form-row">
+      <button class="ep-btn" id="epbtn">${form.emoji}</button>
+      <input class="tinp" id="tinp" placeholder="e.g. Go to the gym" maxlength="42">
+      <button class="add-btn" id="addbtn">+</button>
+    </div>
+    <div class="fields-row">
+      <div class="field-block">
+        <div class="field-lbl">Starts at week</div>
+        <div class="stepper">
+          <button class="step-btn" id="wk-minus">−</button>
+          <div class="step-val">Wk ${form.unlockWeek}</div>
+          <button class="step-btn" id="wk-plus">+</button>
+        </div>
+      </div>
+      <div class="field-block">
+        <div class="field-lbl">Frequency</div>
+        <div class="freq-grid">`;
+  FREQS.forEach(f=>{ h+=`<button class="freq-btn${f.freq===form.targetFreq?' on':''}" data-addfreq="${f.freq}">${f.label}</button>`; });
+  h+=`</div></div></div></div>`;
+
+  if(S.goals.length) {
+    const w=curWeekNum();
+    h+=`<div class="info-bar" style="margin-top:2px">
+      <span>⚡</span>
+      <span>Goals unlock on their assigned week each period. Currently Week ${w}/12 — ${activeGoals().length} of ${S.goals.length} active.</span>
+    </div>`;
+    h+=`<div class="sec" style="margin-top:2px">Your goals (${S.goals.length})</div>`;
+    S.goals.forEach((g,i)=>{
+      if(edit.id===g.id) {
+        // Inline edit card
+        h+=`<div class="edit-card" style="animation-delay:${i*35}ms">`;
+        if(edit.showPicker) {
+          h+=`<div class="emoji-panel" style="margin-bottom:10px">`;
+          EMOJIS.forEach(e=>{ h+=`<div class="ep-i${e===edit.emoji?' sel':''}" data-editep="${e}">${e}</div>`; });
+          h+=`</div>`;
+        }
+        h+=`<div class="form-row">
+          <button class="ep-btn" id="edit-epbtn">${edit.emoji}</button>
+          <input class="tinp" id="edit-tinp" placeholder="Goal name" maxlength="42">
+          <button class="save-btn" id="edit-save">✓</button>
+          <button class="cancel-btn" id="edit-cancel">✕</button>
+        </div>
+        <div class="fields-row">
+          <div class="field-block">
+            <div class="field-lbl">Starts at week</div>
+            <div class="stepper">
+              <button class="step-btn" id="edit-wk-minus">−</button>
+              <div class="step-val">Wk ${edit.unlockWeek}</div>
+              <button class="step-btn" id="edit-wk-plus">+</button>
+            </div>
+          </div>
+          <div class="field-block">
+            <div class="field-lbl">Frequency</div>
+            <div class="freq-grid">`;
+        FREQS.forEach(f=>{ h+=`<button class="freq-btn${f.freq===edit.targetFreq?' on':''}" data-editfreq="${f.freq}">${f.label}</button>`; });
+        h+=`</div></div></div></div>`;
+      } else {
+        const isActive=g.unlockWeek<=w;
+        const pr=goalPeriodRate(g.id);
+        h+=`<div class="gl-item" style="animation-delay:${i*35}ms">
+          <span style="font-size:22px">${g.emoji}</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:15px;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${esc(g.name)}</div>
+            <div class="gl-badges">
+              ${isActive?'<span class="gl-badge badge-active">Active</span>':''}
+              <span class="gl-badge badge-wk">Wk ${g.unlockWeek}</span>
+              <span class="gl-badge badge-freq">${freqLabel(g.targetFreq)}</span>
+              ${pr!==null?`<span class="gl-badge" style="background:rgba(167,139,250,.12);color:var(--purple)">${pr}% success</span>`:''}
+            </div>
+          </div>
+          <button class="gl-edit" data-edit="${g.id}" title="Edit">✎</button>
+          <button class="gl-del" data-del="${g.id}" title="Delete">✕</button>
+        </div>`;
+      }
+    });
+  } else {
+    h+=`<div class="empty">
+      <div class="empty-i">✨</div>
+      <div class="empty-h">Build your goals</div>
+      <div class="empty-p">Add all the habits you want to build. Set the week they unlock and how often you need to do them.</div>
+    </div>
+    <button class="ex-btn" id="exbtn">✦ Load example goals</button>`;
+  }
+  return h;
+}
+
+/* ═══════════════════════════════════════════════════════
+   EVENT BINDING
+═══════════════════════════════════════════════════════ */
+function bind() {
+  // Today: toggle goal
+  document.querySelectorAll('.gc[data-gid]').forEach(c=>{
+    c.addEventListener('click',()=>{ const added=toggle(c.dataset.gid); if(added) burst(); render(); });
+  });
+
+  // ── Add-form ──────────────────────────────────────────
+  const ab=document.getElementById('addbtn');
+  if(ab) ab.addEventListener('click',addGoal);
+
+  const ti=document.getElementById('tinp');
+  if(ti) {
+    ti.value=form.nameValue;           // restore value after re-render
+    ti.addEventListener('input',e=>{ form.nameValue=e.target.value; });
+    ti.addEventListener('keydown',e=>{ if(e.key==='Enter') addGoal(); });
+  }
+
+  // Add-form emoji toggle
+  const epb=document.getElementById('epbtn');
+  if(epb) epb.addEventListener('click',()=>{ form.showPicker=!form.showPicker; render(); });
+
+  // Add-form emoji pick
+  document.querySelectorAll('.ep-i[data-addep]').forEach(el=>{
+    el.addEventListener('click',()=>{ form.emoji=el.dataset.addep; form.showPicker=false; render(); });
+  });
+
+  // Add-form freq buttons (use data-addfreq to avoid clashing with edit buttons)
+  document.querySelectorAll('.freq-btn[data-addfreq]').forEach(btn=>{
+    btn.addEventListener('click',()=>{ form.targetFreq=parseInt(btn.dataset.addfreq); render(); });
+  });
+
+  // Add-form week stepper
+  const wm=document.getElementById('wk-minus'), wp=document.getElementById('wk-plus');
+  if(wm) wm.addEventListener('click',()=>{ form.unlockWeek=Math.max(1,form.unlockWeek-1); render(); });
+  if(wp) wp.addEventListener('click',()=>{ form.unlockWeek=Math.min(12,form.unlockWeek+1); render(); });
+
+  // ── Edit-form ──────────────────────────────────────────
+  const eti=document.getElementById('edit-tinp');
+  if(eti) {
+    eti.value=edit.nameValue;
+    eti.addEventListener('input',e=>{ edit.nameValue=e.target.value; });
+    eti.addEventListener('keydown',e=>{ if(e.key==='Enter') saveEdit(); });
+    setTimeout(()=>eti.focus(),60);
+  }
+
+  document.getElementById('edit-save')?.addEventListener('click', saveEdit);
+  document.getElementById('edit-cancel')?.addEventListener('click', cancelEdit);
+
+  // Edit-form emoji toggle
+  document.getElementById('edit-epbtn')?.addEventListener('click',()=>{ edit.showPicker=!edit.showPicker; render(); });
+
+  // Edit-form emoji pick
+  document.querySelectorAll('.ep-i[data-editep]').forEach(el=>{
+    el.addEventListener('click',()=>{ edit.emoji=el.dataset.editep; edit.showPicker=false; render(); });
+  });
+
+  // Edit-form freq buttons
+  document.querySelectorAll('.freq-btn[data-editfreq]').forEach(btn=>{
+    btn.addEventListener('click',()=>{ edit.targetFreq=parseInt(btn.dataset.editfreq); render(); });
+  });
+
+  // Edit-form week stepper
+  document.getElementById('edit-wk-minus')?.addEventListener('click',()=>{ edit.unlockWeek=Math.max(1,edit.unlockWeek-1); render(); });
+  document.getElementById('edit-wk-plus')?.addEventListener('click',()=>{ edit.unlockWeek=Math.min(12,edit.unlockWeek+1); render(); });
+
+  // ── Goal list actions ──────────────────────────────────
+  document.querySelectorAll('.gl-edit[data-edit]').forEach(btn=>{
+    btn.addEventListener('click',()=>startEdit(btn.dataset.edit));
+  });
+
+  document.querySelectorAll('.gl-del[data-del]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      if(!confirm('Remove this goal? Your completion history will be cleared.')) return;
+      const id=btn.dataset.del;
+      S.goals=S.goals.filter(g=>g.id!==id);
+      Object.keys(S.completions).forEach(d=>{ S.completions[d]=(S.completions[d]||[]).filter(x=>x!==id); });
+      if(edit.id===id) edit.id=null;
+      save(); render();
+    });
+  });
+
+  // New period buttons
+  document.getElementById('np-reset')?.addEventListener('click',()=>startNewPeriod(true));
+  document.getElementById('np-keep')?.addEventListener('click',()=>startNewPeriod(false));
+
+  // Example goals
+  document.getElementById('exbtn')?.addEventListener('click',loadExamples);
+}
+
+function refocus() {
+  setTimeout(()=>{ const i=document.getElementById('tinp'); if(i) i.focus(); },60);
+}
+
+function addGoal() {
+  const i=document.getElementById('tinp'); if(!i) return;
+  const name=i.value.trim(); if(!name){ i.focus(); return; }
+  S.goals.push({ id:uid(), name, emoji:form.emoji, unlockWeek:form.unlockWeek, targetFreq:form.targetFreq });
+  // Suggest next week for convenience
+  form.unlockWeek = Math.min(12, form.unlockWeek+1);
+  save(); i.value=''; form.showPicker=false; render();
+  setTimeout(()=>{ const inp=document.getElementById('tinp'); if(inp) inp.focus(); },60);
+}
+
+function startNewPeriod(resetToWeek1) {
+  const msg = resetToWeek1
+    ? 'Start a new 12-week period with ALL goals from Week 1?'
+    : 'Start a new 12-week period keeping the current unlock schedule?';
+  if(!confirm(msg)) return;
+  if(resetToWeek1) S.goals.forEach(g=>g.unlockWeek=1);
+  const pid=uid();
+  const num=S.periods.length+1;
+  S.periods.push({id:pid, startDate:today(), name:`Period ${num}`});
+  S.activePeriodId=pid;
+  save(); render();
+}
+
+function loadExamples() {
+  const ex=[
+    {emoji:'💪',name:'Go to the gym',unlockWeek:1,targetFreq:4},
+    {emoji:'📚',name:'Read 20 minutes',unlockWeek:1,targetFreq:7},
+    {emoji:'💧',name:'Drink 2L of water',unlockWeek:2,targetFreq:7},
+    {emoji:'🧘',name:'Meditate 10 min',unlockWeek:2,targetFreq:5},
+    {emoji:'🌅',name:'Morning walk',unlockWeek:3,targetFreq:3},
+  ];
+  ex.forEach(e=>S.goals.push({id:uid(),name:e.name,emoji:e.emoji,unlockWeek:e.unlockWeek,targetFreq:e.targetFreq}));
+  save(); render();
+}
+
+/* ═══════════════════════════════════════════════════════
+   CELEBRATION
+═══════════════════════════════════════════════════════ */
+const canvas=document.getElementById('cc');
+const ctx=canvas.getContext('2d');
+let parts=[], raf=null;
+function resize(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
+resize(); window.addEventListener('resize',resize);
+const COLS=['#FFB830','#FF6B6B','#3DDC84','#A78BFA','#60A5FA','#F472B6','#FBBF24','#FB923C'];
+
+class P {
+  constructor(){
+    this.x=canvas.width*(0.2+Math.random()*0.6);
+    this.y=canvas.height*0.55+Math.random()*50;
+    this.sz=5+Math.random()*9;
+    this.col=COLS[Math.random()*COLS.length|0];
+    this.vx=(Math.random()-.5)*7;
+    this.vy=-(9+Math.random()*11);
+    this.g=0.28; this.life=1;
+    this.dec=0.012+Math.random()*0.01;
+    this.rot=Math.random()*Math.PI*2;
+    this.rs=(Math.random()-.5)*0.22;
+    this.rect=Math.random()>.4;
+  }
+  tick(){this.vy+=this.g;this.x+=this.vx;this.y+=this.vy;this.rot+=this.rs;this.life-=this.dec;}
+  draw(){
+    ctx.save();ctx.globalAlpha=Math.max(0,this.life);
+    ctx.translate(this.x,this.y);ctx.rotate(this.rot);ctx.fillStyle=this.col;
+    if(this.rect) ctx.fillRect(-this.sz/2,-this.sz*.35,this.sz,this.sz*.7);
+    else{ctx.beginPath();ctx.arc(0,0,this.sz*.5,0,Math.PI*2);ctx.fill();}
+    ctx.restore();
+  }
+}
+
+function burst(){
+  for(let i=0;i<65;i++) parts.push(new P());
+  const fl=document.createElement('div'); fl.className='flash';
+  document.body.appendChild(fl); setTimeout(()=>fl.remove(),500);
+  if(!raf) loop();
+}
+function loop(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  parts=parts.filter(p=>p.life>0);
+  parts.forEach(p=>{p.tick();p.draw();});
+  if(parts.length) raf=requestAnimationFrame(loop); else raf=null;
+}
+
+/* ═══════════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════════ */
+load();
+// Bootstrap first period if none exists
+if(!S.periods.length) {
+  const pid=uid();
+  S.periods=[{id:pid,startDate:today(),name:'Period 1'}];
+  S.activePeriodId=pid;
+  save();
+}
+// Migrate old data: ensure all goals have targetFreq and unlockWeek
+S.goals.forEach(g=>{
+  if(!g.targetFreq) g.targetFreq=7;
+  if(!g.unlockWeek) g.unlockWeek=1;
+});
+render();
+</script>
+</body>
+</html>
