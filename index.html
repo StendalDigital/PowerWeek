@@ -121,6 +121,15 @@ body{
 .lock-badge{margin-left:auto;font-size:11px;font-weight:600;color:var(--accent);
   background:rgba(255,184,48,.12);border-radius:100px;padding:3px 10px;white-space:nowrap;flex-shrink:0}
 
+/* ── Day editor (catch up on a previous day) ── */
+.date-inp{width:100%;height:46px;background:var(--s2);border:1.5px solid var(--border);
+  border-radius:12px;padding:0 13px;font-family:'Fredoka',sans-serif;font-size:15px;
+  color:var(--text);outline:none;transition:border-color .2s;color-scheme:dark}
+.date-inp:focus{border-color:var(--accent)}
+.day-edit-empty{font-size:13px;color:var(--muted);font-weight:400;line-height:1.5;
+  margin-top:12px;text-align:center;padding:6px 0}
+.day-edit-label{font-size:13px;font-weight:600;color:var(--accent);margin-top:14px;margin-bottom:8px}
+
 /* ── Period tab ── */
 .period-summary{background:var(--surface);border:1px solid var(--border);
   border-radius:var(--r);padding:18px;margin-bottom:14px}
@@ -174,6 +183,16 @@ body{
 .np-btn-primary{background:var(--purple);color:#fff}
 .np-btn-secondary{background:var(--s2);color:var(--text);border:1px solid var(--border)}
 .np-btn-sub{font-size:12px;font-weight:400;opacity:.75;display:block;margin-top:1px}
+
+/* ── Danger zone / reset all ── */
+.danger-card{background:rgba(255,107,107,.06);border:1px solid rgba(255,107,107,.2);
+  border-radius:var(--r);padding:18px;margin-top:14px}
+.danger-title{font-size:15px;font-weight:700;color:var(--a2);margin-bottom:6px}
+.danger-desc{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:14px;font-weight:400}
+.danger-btn{width:100%;padding:13px 16px;border-radius:14px;border:1px solid rgba(255,107,107,.3);
+  background:rgba(255,107,107,.1);color:var(--a2);font-family:'Fredoka',sans-serif;
+  font-size:14px;font-weight:600;cursor:pointer;transition:transform .15s}
+.danger-btn:active{transform:scale(.97)}
 
 /* ── Goals tab forms ── */
 .form-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
@@ -310,6 +329,20 @@ function uid() { return Date.now().toString(36)+Math.random().toString(36).slice
 function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function freqLabel(f) { return f===7?'Daily':f+'×/wk'; }
 
+/* Returns the Monday (YYYY-MM-DD) a 12-week period should start on, given "today".
+   If today is Monday or Tuesday, the period starts THIS week's Monday.
+   Otherwise (Wed–Sun), the period starts NEXT Monday. */
+function alignedMonday(dateObj) {
+  const d = new Date(dateObj); d.setHours(0,0,0,0);
+  const day = d.getDay(); // 0=Sun,1=Mon,...6=Sat
+  const thisMonday = new Date(d);
+  thisMonday.setDate(d.getDate() - ((day + 6) % 7));
+  if (day === 1 || day === 2) return ds(thisMonday);
+  const nextMonday = new Date(thisMonday);
+  nextMonday.setDate(thisMonday.getDate() + 7);
+  return ds(nextMonday);
+}
+
 /* ═══════════════════════════════════════════════════════
    PERIOD HELPERS
 ═══════════════════════════════════════════════════════ */
@@ -406,12 +439,33 @@ function dayStreakFor(gid) {
 
 function weekDoneCount(gid) { return weekDatesFor(curWeekNum()).filter(d=>isDone(gid,d)).length; }
 
+/* ── Previous-day editing helpers ── */
+function weekNumForDate(dateStr) {
+  const p = curPeriod(); if(!p) return 1;
+  const start = new Date(p.startDate+'T00:00:00');
+  const t = new Date(dateStr+'T00:00:00');
+  return Math.min(12, Math.max(1, Math.floor((t-start)/604800000)+1));
+}
+
+function activeGoalsForDate(dateStr) {
+  const w = weekNumForDate(dateStr);
+  return S.goals.filter(g => g.unlockWeek <= w);
+}
+
+function toggleForDate(gid, date) {
+  if(!S.completions[date]) S.completions[date]=[];
+  const i = S.completions[date].indexOf(gid);
+  if(i===-1){ S.completions[date].push(gid); save(); return true; }
+  else{ S.completions[date].splice(i,1); save(); return false; }
+}
+
 /* ═══════════════════════════════════════════════════════
    TAB STATE
 ═══════════════════════════════════════════════════════ */
 let tab = 'today';
 const form = { emoji:'💪', showPicker:false, unlockWeek:1, targetFreq:7, nameValue:'' };
 const edit = { id:null, emoji:'', nameValue:'', unlockWeek:1, targetFreq:7, showPicker:false };
+let dayEditDate = null;
 
 const EMOJIS = ['💪','📚','🧘','🏃','💧','🥗','😴','✍️','🎸','🌿','🧹','💊','🐕','🎯','🧠','🌅','🚴','🤸','🎨','📝','🎵','🍎','☕','🛁','🌙','🏊','⚽','🔬','🎻','🌸'];
 const FREQS = [{label:'Daily',freq:7},{label:'6×',freq:6},{label:'5×',freq:5},{label:'4×',freq:4},{label:'3×',freq:3},{label:'2×',freq:2},{label:'1×',freq:1}];
@@ -511,6 +565,44 @@ function rToday() {
       </div>`;
     });
   }
+
+  h += rDayEditor();
+  return h;
+}
+
+/* ── Catch up on a previous day ── */
+function rDayEditor() {
+  const p = curPeriod();
+  const maxDate = today();
+  let minDate = p ? p.startDate : maxDate;
+  if (minDate > maxDate) minDate = maxDate; // period hasn't technically started yet
+
+  let h = `<div class="sec" style="margin-top:18px">Catch up on a previous day</div>
+  <div class="card">
+    <input type="date" class="date-inp" id="day-edit-input" value="${dayEditDate||''}" min="${minDate}" max="${maxDate}">`;
+
+  if(dayEditDate) {
+    const goals = activeGoalsForDate(dayEditDate);
+    const dateLabel = new Date(dayEditDate+'T00:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+    if(!goals.length) {
+      h += `<div class="day-edit-empty">No goals were active during the week of ${dateLabel}.</div>`;
+    } else {
+      h += `<div class="day-edit-label">${dateLabel}</div>`;
+      goals.forEach((g,i)=>{
+        const dk = isDone(g.id, dayEditDate);
+        h += `<div class="gc${dk?' done':''}" data-editgid="${g.id}" style="margin-bottom:${i===goals.length-1?'0':'9px'}">
+          <div class="gc-emoji">${g.emoji}</div>
+          <div class="gc-info">
+            <div class="gc-name">${esc(g.name)}</div>
+          </div>
+          <div class="gc-check"><div class="gc-tick">✓</div></div>
+        </div>`;
+      });
+    }
+  } else {
+    h += `<div class="day-edit-empty">Pick a date to review and tick off goals you might have forgotten to update.</div>`;
+  }
+  h += `</div>`;
   return h;
 }
 
@@ -522,7 +614,7 @@ function rPeriod() {
   if(!p) return `<div class="empty"><div class="empty-i">📅</div><div class="empty-h">No period yet</div></div>`;
   if(!S.goals.length) return `<div class="empty"><div class="empty-i">📅</div>
     <div class="empty-h">No goals yet</div>
-    <div class="empty-p">Add goals first in the Goals tab.</div></div>`;
+    <div class="empty-p">Add goals first in the Goals tab.</div></div>` + dangerCard();
 
   const w = curWeekNum();
   const over = isPeriodOver();
@@ -547,7 +639,7 @@ function rPeriod() {
     </div>
     <div class="ps-footer">
       <span>Week ${w} of 12</span>
-      <span>${over?'Period complete':'${dl} days remaining'}</span>
+      <span>${over?'Period complete':dl+' day'+(dl!==1?'s':'')+' remaining'}</span>
     </div>
   </div>`;
 
@@ -608,7 +700,16 @@ function rPeriod() {
     </div>
   </div>`;
 
+  h += dangerCard();
   return h;
+}
+
+function dangerCard() {
+  return `<div class="danger-card">
+    <div class="danger-title">⚠️ Danger Zone</div>
+    <div class="danger-desc">Permanently delete all goals, completion history, and periods, and start completely fresh from a new Period 1.</div>
+    <button class="danger-btn" id="reset-all-btn">Reset All Data</button>
+  </div>`;
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -801,8 +902,23 @@ function bind() {
   document.getElementById('np-reset')?.addEventListener('click',()=>startNewPeriod(true));
   document.getElementById('np-keep')?.addEventListener('click',()=>startNewPeriod(false));
 
+  // Reset all data
+  document.getElementById('reset-all-btn')?.addEventListener('click', resetAll);
+
   // Example goals
   document.getElementById('exbtn')?.addEventListener('click',loadExamples);
+
+  // ── Day editor (catch up on a previous day) ──────────────
+  const dei=document.getElementById('day-edit-input');
+  if(dei) dei.addEventListener('change', e=>{ dayEditDate = e.target.value || null; render(); });
+
+  document.querySelectorAll('.gc[data-editgid]').forEach(c=>{
+    c.addEventListener('click',()=>{
+      const added=toggleForDate(c.dataset.editgid, dayEditDate);
+      if(added) burst();
+      render();
+    });
+  });
 }
 
 function refocus() {
@@ -827,9 +943,21 @@ function startNewPeriod(resetToWeek1) {
   if(resetToWeek1) S.goals.forEach(g=>g.unlockWeek=1);
   const pid=uid();
   const num=S.periods.length+1;
-  S.periods.push({id:pid, startDate:today(), name:`Period ${num}`});
+  S.periods.push({id:pid, startDate:alignedMonday(new Date()), name:`Period ${num}`});
   S.activePeriodId=pid;
+  dayEditDate=null;
   save(); render();
+}
+
+function resetAll() {
+  if(!confirm('Reset ALL data? This permanently deletes every goal, your full completion history, and all periods.')) return;
+  if(!confirm('Are you absolutely sure? This cannot be undone.')) return;
+  S = { goals:[], periods:[], activePeriodId:null, completions:{} };
+  const pid=uid();
+  S.periods=[{id:pid, startDate:alignedMonday(new Date()), name:'Period 1'}];
+  S.activePeriodId=pid;
+  edit.id=null; dayEditDate=null;
+  save(); go('today');
 }
 
 function loadExamples() {
@@ -898,7 +1026,7 @@ load();
 // Bootstrap first period if none exists
 if(!S.periods.length) {
   const pid=uid();
-  S.periods=[{id:pid,startDate:today(),name:'Period 1'}];
+  S.periods=[{id:pid,startDate:alignedMonday(new Date()),name:'Period 1'}];
   S.activePeriodId=pid;
   save();
 }
