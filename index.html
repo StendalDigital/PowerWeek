@@ -352,6 +352,7 @@ function curWeekNum() {
   const p = curPeriod(); if(!p) return 1;
   const start = new Date(p.startDate+'T00:00:00');
   const t = new Date(); t.setHours(0,0,0,0);
+  if (t < start) return 0; // period hasn't started yet (e.g. set up Wed–Sun, starts next Monday)
   return Math.min(12, Math.max(1, Math.floor((t-start)/604800000)+1));
 }
 
@@ -483,7 +484,7 @@ function go(t) {
 ═══════════════════════════════════════════════════════ */
 function render() {
   const w = curWeekNum();
-  document.getElementById('wn').textContent = 'W'+w;
+  document.getElementById('wn').textContent = 'W'+Math.max(1,w);
   document.getElementById('wof').textContent = '12';
   document.getElementById('dl').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
 
@@ -501,6 +502,26 @@ function rToday() {
   if(!S.goals.length) return `<div class="empty"><div class="empty-i">🌱</div>
     <div class="empty-h">No goals yet</div>
     <div class="empty-p">Go to "Goals" and add the habits you want to build. Start with one!</div></div>`;
+
+  const w = curWeekNum();
+  if (w === 0) {
+    const p = curPeriod();
+    const startLabel = new Date(p.startDate+'T00:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+    let h = `<div class="all-done" style="background:linear-gradient(135deg,rgba(167,139,250,.12),rgba(96,165,250,.08));border-color:rgba(167,139,250,.25)">
+      <div class="all-done-i">🗓️</div>
+      <div class="all-done-h" style="color:var(--purple)">Almost there!</div>
+      <div class="all-done-p">Your first week begins ${startLabel}. Here's what's lined up:</div>
+    </div>`;
+    h += `<div class="sec">Your goals</div>`;
+    S.goals.forEach((g,i)=>{
+      h += `<div class="locked" style="animation-delay:${i*35}ms">
+        <div style="font-size:22px">${g.emoji}</div>
+        <div style="font-size:15px;font-weight:500;flex:1">${esc(g.name)}</div>
+        <div class="lock-badge">Week ${g.unlockWeek}</div>
+      </div>`;
+    });
+    return h;
+  }
 
   const ag = activeGoals();
   const done = ag.filter(g=>isDone(g.id)).length;
@@ -621,13 +642,16 @@ function rPeriod() {
   const pNum = S.periods.indexOf(p)+1;
   const or = overallRate();
   const dl = daysLeft();
+  const notStarted = w === 0;
+  const wDisp = Math.max(1, w);
+  const startLabel = new Date(p.startDate+'T00:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
 
   // Period summary card
   let h=`<div class="period-summary">
     <div class="ps-header">
       <div>
         <div class="ps-name">Period ${pNum}</div>
-        <div class="ps-meta">${over?'Complete ✓':`Week ${w} of 12 · ${dl} day${dl!==1?'s':''} left`}</div>
+        <div class="ps-meta">${over?'Complete ✓':notStarted?`Starts ${startLabel}`:`Week ${w} of 12 · ${dl} day${dl!==1?'s':''} left`}</div>
       </div>
       <div class="ps-rate">
         <div class="ps-rate-num">${or!==null?or+'%':'–'}</div>
@@ -635,10 +659,10 @@ function rPeriod() {
       </div>
     </div>
     <div class="ps-week-track">
-      <div class="ps-week-fill" style="width:${over?100:Math.round((w-1)/12*100)}%"></div>
+      <div class="ps-week-fill" style="width:${over?100:notStarted?0:Math.round((w-1)/12*100)}%"></div>
     </div>
     <div class="ps-footer">
-      <span>Week ${w} of 12</span>
+      <span>${notStarted?'Not started yet':`Week ${w} of 12`}</span>
       <span>${over?'Period complete':dl+' day'+(dl!==1?'s':'')+' remaining'}</span>
     </div>
   </div>`;
@@ -670,7 +694,7 @@ function rPeriod() {
       <div class="week-grid">`;
     for(let wn=1;wn<=12;wn++) {
       const st=succWeeks[wn-1];
-      const isCur=wn===w&&!over;
+      const isCur=(notStarted?wn===1:wn===w)&&!over;
       h+=`<div class="wc ${st}${isCur?' cur':''}" title="Week ${wn}">
         <div class="wc-num">${wn}</div>
       </div>`;
@@ -683,7 +707,7 @@ function rPeriod() {
     <div class="np-title">🔄 ${over?'Start New Period':'New Period'}</div>
     <div class="np-desc">${over
       ? 'This 12-week period is complete. Start a fresh one and keep building!'
-      : `You're in week ${w} of 12. You can start a new period anytime — all your history is preserved.`}</div>
+      : `You're in week ${wDisp} of 12. You can start a new period anytime — all your history is preserved.`}</div>
     <div class="np-btns">
       <button class="np-btn np-btn-primary" id="np-reset">
         <span>✦</span>
@@ -750,9 +774,17 @@ function rGoals() {
 
   if(S.goals.length) {
     const w=curWeekNum();
+    let infoText;
+    if(w===0) {
+      const p=curPeriod();
+      const startLabel=new Date(p.startDate+'T00:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+      infoText=`Your period starts ${startLabel} — 0 of ${S.goals.length} active yet.`;
+    } else {
+      infoText=`Goals unlock on their assigned week each period. Currently Week ${w}/12 — ${activeGoals().length} of ${S.goals.length} active.`;
+    }
     h+=`<div class="info-bar" style="margin-top:2px">
       <span>⚡</span>
-      <span>Goals unlock on their assigned week each period. Currently Week ${w}/12 — ${activeGoals().length} of ${S.goals.length} active.</span>
+      <span>${infoText}</span>
     </div>`;
     h+=`<div class="sec" style="margin-top:2px">Your goals (${S.goals.length})</div>`;
     S.goals.forEach((g,i)=>{
